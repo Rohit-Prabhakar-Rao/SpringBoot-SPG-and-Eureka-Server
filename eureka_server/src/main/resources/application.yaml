@@ -1,0 +1,25 @@
+server:
+  # The default port for Eureka Server is 8761
+  port: 8761
+
+spring:
+  application:
+    # Give your Eureka Server a name
+    name: eureka-server
+
+# Configuration block for Eureka
+eureka:
+  client:
+    # 1. Disable client registration:
+    # The server should NOT register itself with a registry (since it IS the registry)
+    register-with-eureka: false
+
+    # 2. Disable fetching the registry:
+    # The server should NOT try to fetch the registry from peers (unless running in HA mode)
+    fetch-registry: false
+
+    # 3. Define the Service URL (Best Practice)
+    # Even though we disabled client behavior, it's good practice to set the URL
+    # to avoid log warnings/errors about not finding peers. It points to itself.
+    service-url:
+      defaultZone: http://localhost:${server.port}/eureka/

@@ -1,0 +1,35 @@
+server:
+  port: 8082   # User service runs on a different port
+
+#eureka:
+#  client:
+#    serviceUrl:
+#      # Point to your Eureka Server
+#      defaultZone: http://localhost:8761/eureka/
+
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/main_db  # Or your DB name
+    username: admin
+    password: admin
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+  jackson:
+    time-zone: Asia/Kolkata
+
+# JWT secret should be same as Auth Service
+jwt:
+  secret: b53f228c66b94fbfb53f228c66b94fbf
+  expiration-ms: 3600000  # 1 hour
+
+# Optional: logging
+logging:
+  level:
+    org.springframework: INFO
+    com.springtesting.auth_service: DEBUG

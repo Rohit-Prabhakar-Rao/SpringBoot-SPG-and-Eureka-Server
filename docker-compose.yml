@@ -1,0 +1,151 @@
+version: "3.9"
+
+services:
+
+  # -----------------------------
+  # MongoDB
+  # -----------------------------
+  mongo:
+    image: mongo:7.0
+    container_name: mongo
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: "appuser"
+      MONGO_INITDB_ROOT_PASSWORD: "StrongPass123!"
+      MONGO_INITDB_DATABASE: "mydb"
+    volumes:
+      - mongo_data:/data/db
+    networks:
+      - micro_net
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    restart: unless-stopped
+
+  # -----------------------------
+  # Postgres
+  # -----------------------------
+  postgres:
+    image: postgres:16
+    container_name: postgres
+    environment:
+      POSTGRES_DB: "main_db"        # changed to match your app.yaml (main_db)
+      POSTGRES_USER: "admin"
+      POSTGRES_PASSWORD: "admin"
+    ports:
+      - "5432:5432"
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+    networks:
+      - micro_net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB} || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    restart: unless-stopped
+
+  # -----------------------------
+  # Auth Service (port 8081)
+  # -----------------------------
+  auth-service:
+    build:
+      context: ./auth-service
+      dockerfile: Dockerfile
+    container_name: auth-service
+    environment:
+      SERVER_PORT: 8081
+      # When running in Docker use 'postgres' as host. When running on host, your app should use 'localhost'
+      SPRING_DATASOURCE_URL: "jdbc:postgresql://postgres:5432/main_db"
+      SPRING_DATASOURCE_USERNAME: "admin"
+      SPRING_DATASOURCE_PASSWORD: "admin"
+      WAIT_FOR: "postgres:5432"
+    ports:
+      - "8081:8081"
+    networks:
+      - micro_net
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: on-failure
+
+  # -----------------------------
+  # User Service (port 8082)
+  # -----------------------------
+  user-service:
+    build:
+      context: ./user-service
+      dockerfile: Dockerfile
+    container_name: user-service
+    environment:
+      SERVER_PORT: 8082
+      SPRING_DATASOURCE_URL: "jdbc:postgresql://postgres:5432/main_db"
+      SPRING_DATASOURCE_USERNAME: "admin"
+      SPRING_DATASOURCE_PASSWORD: "admin"
+      WAIT_FOR: "postgres:5432"
+    ports:
+      - "8082:8082"
+    networks:
+      - micro_net
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: on-failure
+
+  # -----------------------------
+  # Product Service (port 8083)
+  # -----------------------------
+  product-service:
+    build:
+      context: ./product-service
+      dockerfile: Dockerfile
+    container_name: product-service
+    environment:
+      SERVER_PORT: 8083
+      # when running inside docker the mongo host is 'mongo'
+      SPRING_DATA_MONGODB_URI: "mongodb://appuser:StrongPass123%21@mongo:27017/mydb?authSource=admin"
+      WAIT_FOR: "mongo:27017"
+    ports:
+      - "8083:8083"
+    networks:
+      - micro_net
+    depends_on:
+      mongo:
+        condition: service_healthy
+    restart: on-failure
+
+  # -----------------------------
+  # API Gateway (port 8080)
+  # -----------------------------
+  api-gateway:
+    build:
+      context: ./api-gateway
+      dockerfile: Dockerfile
+    container_name: api-gateway
+    environment:
+      SERVER_PORT: 8080
+      WAIT_FOR: "auth-service:8081,user-service:8082,product-service:8083"
+    ports:
+      - "8080:8080"
+    networks:
+      - micro_net
+    depends_on:
+      auth-service:
+        condition: service_started
+      user-service:
+        condition: service_started
+      product-service:
+        condition: service_started
+    restart: on-failure
+
+networks:
+  micro_net:
+
+volumes:
+  mongo_data:
+  pg_data:

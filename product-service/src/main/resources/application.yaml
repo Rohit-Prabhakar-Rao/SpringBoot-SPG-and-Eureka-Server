@@ -1,0 +1,28 @@
+server:
+  port: 8083
+
+spring:
+  data:
+    mongodb:
+      uri: "mongodb://appuser:StrongPass123%21@localhost:27017/mydb?authSource=admin&serverSelectionTimeoutMS=30000"
+
+  jackson:
+    serialization:
+      write-dates-as-timestamps: false
+
+#eureka:
+#  client:
+#    serviceUrl:
+#      # Point to your Eureka Server
+#      defaultZone: http://localhost:8761/eureka/
+
+logging:
+  level:
+    org.springframework: INFO
+    com.springtesting.product_service: DEBUG
+    org.mongodb.driver: DEBUG
+    org.mongodb.driver.cluster: DEBUG
+
+jwt:
+  secret: b53f228c66b94fbfb53f228c66b94fbf
+  expiration: 3600000  # 1 hour in ms
